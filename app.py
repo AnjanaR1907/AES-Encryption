@@ -1,167 +1,74 @@
-from flask import Flask, request, render_template_string
+from tkinter import *
+from tkinter import messagebox, scrolledtext
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
-import base64, os
+import base64
 
-app = Flask(__name__)
+def encrypt():
+    try:
+        key = key_entry.get().encode()
+        key_size = int(key_size_var.get())
+        plaintext = plaintext_text.get("1.0", END).strip().encode()
 
-# ==============================
-# AES Functions
-# ==============================
-def aes_encrypt(plaintext, key, iv=None):
-    if iv is None:
+        if len(key) != key_size:
+            messagebox.showerror("Error", f"Key must be {key_size} bytes long")
+            return
+
         cipher = AES.new(key, AES.MODE_CBC)
-        iv = cipher.iv
-    else:
-        iv = bytes.fromhex(iv)
+        ct_bytes = cipher.encrypt(pad(plaintext, AES.block_size))
+        ct = base64.b64encode(cipher.iv + ct_bytes).decode('utf-8')
+        ciphertext_text.delete("1.0", END)
+        ciphertext_text.insert(END, ct)
+    except Exception as e:
+        messagebox.showerror("Error", str(e))
+
+def decrypt():
+    try:
+        key = key_entry.get().encode()
+        key_size = int(key_size_var.get())
+        ct = ciphertext_text.get("1.0", END).strip()
+        ct_bytes = base64.b64decode(ct)
+
+        if len(key) != key_size:
+            messagebox.showerror("Error", f"Key must be {key_size} bytes long")
+            return
+
+        iv = ct_bytes[:AES.block_size]
         cipher = AES.new(key, AES.MODE_CBC, iv)
+        pt = unpad(cipher.decrypt(ct_bytes[AES.block_size:]), AES.block_size).decode('utf-8')
+        plaintext_text.delete("1.0", END)
+        plaintext_text.insert(END, pt)
+    except Exception as e:
+        messagebox.showerror("Error", str(e))
 
-    ct_bytes = cipher.encrypt(pad(plaintext.encode(), AES.block_size))
-    iv_b64 = base64.b64encode(iv).decode('utf-8')
-    ct = base64.b64encode(ct_bytes).decode('utf-8')
-    return iv_b64, ct
+# GUI Setup
+root = Tk()
+root.title("AES Encryption / Decryption Tool")
+root.geometry("800x500")
 
-def aes_decrypt(iv, ciphertext, key):
-    iv = base64.b64decode(iv)
-    ct = base64.b64decode(ciphertext)
-    cipher = AES.new(key, AES.MODE_CBC, iv)
-    pt = unpad(cipher.decrypt(ct), AES.block_size)
-    return pt.decode('utf-8')
+# Labels
+Label(root, text="Plaintext").grid(row=0, column=0, padx=10, pady=5)
+Label(root, text="Ciphertext (Base64)").grid(row=0, column=1, padx=10, pady=5)
+Label(root, text="Secret Key").grid(row=2, column=0, padx=10, pady=5, sticky=W)
+Label(root, text="Key Size (bytes)").grid(row=2, column=1, padx=10, pady=5, sticky=W)
 
-# ==============================
-# HTML Template
-# ==============================
-html_page = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>🔐 AES Encryption & Decryption</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background: linear-gradient(135deg, #06b6d4, #3b82f6);
-            text-align: center;
-            padding: 40px;
-            color: #fff;
-        }
-        h1 { font-size: 2.2em; margin-bottom: 20px; }
-        form {
-            background: #ffffff;
-            color: #222;
-            padding: 25px;
-            border-radius: 16px;
-            box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
-            display: inline-block;
-            width: 75%;
-            max-width: 650px;
-        }
-        textarea, input {
-            width: 90%;
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 10px;
-            border: 1px solid #ccc;
-            font-size: 1em;
-        }
-        button {
-            background: #2563EB;
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            margin-top: 10px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: 0.3s;
-        }
-        button:hover { background: #1E40AF; }
-        .result {
-            background: rgba(255, 255, 255, 0.95);
-            color: #111;
-            margin-top: 25px;
-            padding: 20px;
-            border-radius: 16px;
-            box-shadow: 0px 6px 12px rgba(0,0,0,0.2);
-            text-align: left;
-            width: 75%;
-            max-width: 650px;
-            margin-left: auto;
-            margin-right: auto;
-            word-wrap: break-word;
-        }
-        .result b { color: #2563EB; }
-    </style>
-</head>
-<body>
-    <h1>🔐 AES Encryption & Decryption (CBC Mode)</h1>
-    <form method="POST">
-        <textarea name="plaintext" placeholder="Enter plaintext..." required>{{ plaintext if plaintext else "" }}</textarea><br>
-        <input type="text" name="user_key" placeholder="Enter secret key (16/24/32 bytes)" value="{{ user_key if user_key else '' }}" required><br>
-        <input type="text" name="user_iv" placeholder="Enter IV in hex (32 chars) or leave blank for random" value="{{ user_iv if user_iv else '' }}"><br>
-        <button type="submit">Encrypt & Decrypt</button>
-    </form>
+# Text Areas
+plaintext_text = scrolledtext.ScrolledText(root, width=40, height=10)
+plaintext_text.grid(row=1, column=0, padx=10, pady=5)
+ciphertext_text = scrolledtext.ScrolledText(root, width=40, height=10)
+ciphertext_text.grid(row=1, column=1, padx=10, pady=5)
 
-    {% if error %}
-    <div class="result">
-        <p style="color:red;"><b>Error:</b> {{ error }}</p>
-    </div>
-    {% endif %}
+# Key Entry & Size Dropdown
+key_entry = Entry(root, width=50, show="*")
+key_entry.grid(row=3, column=0, columnspan=2, padx=10, pady=5)
+key_size_var = StringVar(value="16")
+key_size_menu = OptionMenu(root, key_size_var, "16", "24", "32")
+key_size_menu.grid(row=3, column=2, padx=10, pady=5, sticky=W)
 
-    {% if secret_key %}
-    <div class="result">
-        <p><b>Secret Key (Hex):</b><br>{{ secret_key }}</p>
-        <p><b>Key Length (bits):</b> {{ key_length }}</p>
-        <p><b>IV (Base64):</b><br>{{ iv }}</p>
-        <p><b>Ciphertext (Base64):</b><br>{{ ciphertext }}</p>
-        <p><b>Decrypted Plaintext:</b><br>{{ decrypted_text }}</p>
-    </div>
-    {% endif %}
-</body>
-</html>
-"""
+# Buttons
+encrypt_btn = Button(root, text="Encrypt →", command=encrypt, width=20, bg="lightgreen")
+encrypt_btn.grid(row=4, column=0, pady=10)
+decrypt_btn = Button(root, text="← Decrypt", command=decrypt, width=20, bg="lightblue")
+decrypt_btn.grid(row=4, column=1, pady=10)
 
-# ==============================
-# Routes
-# ==============================
-@app.route("/", methods=["GET", "POST"])
-def index():
-    if request.method == "POST":
-        plaintext = request.form["plaintext"]
-        user_key = request.form["user_key"].encode()
-        user_iv = request.form["user_iv"]
-
-        # Validate key length
-        if len(user_key) not in (16, 24, 32):
-            return render_template_string(html_page,
-                                          plaintext=plaintext,
-                                          user_key=request.form["user_key"],
-                                          user_iv=user_iv,
-                                          error="❌ Invalid key length! Must be 16, 24, or 32 bytes.")
-
-        # Validate IV if provided
-        if user_iv and len(user_iv) != 32:
-            return render_template_string(html_page,
-                                          plaintext=plaintext,
-                                          user_key=request.form["user_key"],
-                                          user_iv=user_iv,
-                                          error="❌ Invalid IV length! Must be 32 hex characters (16 bytes).")
-
-        iv, ciphertext = aes_encrypt(plaintext, user_key, user_iv if user_iv else None)
-        decrypted_text = aes_decrypt(iv, ciphertext, user_key)
-
-        return render_template_string(html_page,
-                                      plaintext=plaintext,
-                                      user_key=request.form["user_key"],
-                                      user_iv=user_iv,
-                                      secret_key=user_key.hex(),
-                                      key_length=len(user_key)*8,
-                                      iv=iv,
-                                      ciphertext=ciphertext,
-                                      decrypted_text=decrypted_text)
-    return render_template_string(html_page)
-
-# ==============================
-# Run
-# ==============================
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+root.mainloop()
