@@ -34,61 +34,33 @@ HTML_PAGE = """
     <div class="container">
         <h2>AES Encryption / Decryption Tool</h2>
 
-        <label>Secret Key:</label>
-        <input type="text" name="key" id="key" value="{{ request.form.key or '' }}">
+        <form method="POST">
+            <label>Secret Key:</label>
+            <input type="text" name="key" value="{{ request.form.key or '' }}" required>
 
-        <label>Key Size (bytes):</label>
-        <select id="key_size">
-            <option value="16" {% if request.form.key_size=='16' %}selected{% endif %}>16</option>
-            <option value="24" {% if request.form.key_size=='24' %}selected{% endif %}>24</option>
-            <option value="32" {% if request.form.key_size=='32' %}selected{% endif %}>32</option>
-        </select>
+            <label>Key Size (bytes):</label>
+            <select name="key_size">
+                <option value="16" {% if request.form.key_size=='16' %}selected{% endif %}>16</option>
+                <option value="24" {% if request.form.key_size=='24' %}selected{% endif %}>24</option>
+                <option value="32" {% if request.form.key_size=='32' %}selected{% endif %}>32</option>
+            </select>
 
-        <div class="columns">
-            <div class="column">
-                <label>Plaintext:</label>
-                <textarea id="plaintext">{{ request.form.text or '' }}</textarea>
-                <button onclick="encryptText()" style="background: lightgreen;">Encrypt →</button>
-                <button onclick="copyToClipboard('plaintext')">Copy Plaintext</button>
+            <div class="columns">
+                <div class="column">
+                    <label>Plaintext:</label>
+                    <textarea name="plaintext" id="plaintext">{{ request.form.plaintext or '' }}</textarea>
+                    <button type="submit" name="action" value="encrypt" style="background: lightgreen;">Encrypt →</button>
+                    <button type="button" onclick="copyToClipboard('plaintext')">Copy Plaintext</button>
+                </div>
+                <div class="column">
+                    <label>Ciphertext (Base64):</label>
+                    <textarea name="ciphertext" id="ciphertext">{{ output or '' }}</textarea>
+                    <button type="submit" name="action" value="decrypt" style="background: lightblue;">← Decrypt</button>
+                    <button type="button" onclick="copyToClipboard('ciphertext')">Copy Ciphertext</button>
+                </div>
             </div>
-            <div class="column">
-                <label>Ciphertext (Base64):</label>
-                <textarea id="ciphertext">{{ output or '' }}</textarea>
-                <button onclick="decryptText()" style="background: lightblue;">← Decrypt</button>
-                <button onclick="copyToClipboard('ciphertext')">Copy Ciphertext</button>
-            </div>
-        </div>
+        </form>
     </div>
-
-    <script>
-        async function encryptText() {
-            const key = document.getElementById("key").value;
-            const key_size = document.getElementById("key_size").value;
-            const text = document.getElementById("plaintext").value;
-
-            const response = await fetch("/", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "encrypt", key, key_size, text })
-            });
-            const data = await response.json();
-            document.getElementById("ciphertext").value = data.output;
-        }
-
-        async function decryptText() {
-            const key = document.getElementById("key").value;
-            const key_size = document.getElementById("key_size").value;
-            const text = document.getElementById("ciphertext").value;
-
-            const response = await fetch("/", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "decrypt", key, key_size, text })
-            });
-            const data = await response.json();
-            document.getElementById("plaintext").value = data.output;
-        }
-    </script>
 </body>
 </html>
 """
@@ -108,24 +80,23 @@ def decrypt_aes(ciphertext, key):
 @app.route("/", methods=["GET", "POST"])
 def index():
     output = ""
-    data = request.get_json()
-    if data:
-        action = data.get("action")
-        text = data.get("text", "")
-        key = data.get("key", "").encode()
-        key_size = int(data.get("key_size", 16))
+    if request.method == "POST":
+        key = request.form.get("key", "").encode()
+        key_size = int(request.form.get("key_size", 16))
+        action = request.form.get("action")
+        plaintext = request.form.get("plaintext", "")
+        ciphertext = request.form.get("ciphertext", "")
 
         if len(key) != key_size:
             output = f"Error: Key must be {key_size} bytes long"
         else:
             try:
                 if action == "encrypt":
-                    output = encrypt_aes(text.encode(), key)
+                    output = encrypt_aes(plaintext.encode(), key)
                 elif action == "decrypt":
-                    output = decrypt_aes(text, key)
+                    output = decrypt_aes(ciphertext, key)
             except Exception as e:
                 output = f"Error: {str(e)}"
-        return {"output": output}
 
     return render_template_string(HTML_PAGE, output=output)
 
