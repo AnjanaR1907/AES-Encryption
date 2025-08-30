@@ -9,19 +9,69 @@ HTML_PAGE = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Colorful AES Encryption Tool</title>
+    <title>AES Encryption / Decryption Tool</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #f2f8ff; margin: 30px; }
-        .container { max-width: 700px; margin: auto; background: #ffffff; padding: 30px; border-radius: 15px; 
-                     box-shadow: 0px 0px 15px rgba(0,0,0,0.2);}
-        h2 { text-align: center; color: #2a52be; }
-        label { font-weight: bold; margin-top: 10px; display: block; color: #333; }
-        textarea { width: 100%; height: 120px; margin-top: 5px; border-radius: 8px; padding: 10px; border: 2px solid #2a52be; }
-        input, select { padding: 10px; margin-top: 5px; border-radius: 8px; border: 2px solid #2a52be; width: 100%; }
-        button { padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        body { 
+            font-family: Verdana, sans-serif; 
+            background-color: #e6f2ff; 
+            margin: 30px; 
+        }
+        .container { 
+            max-width: 700px; 
+            margin: auto; 
+            background: #ffffff; 
+            padding: 30px; 
+            border-radius: 15px; 
+            box-shadow: 0px 0px 15px rgba(0,0,0,0.2);
+        }
+        h2 { 
+            text-align: center; 
+            color: #2a52be; 
+            font-family: Verdana, sans-serif; 
+        }
+        label { 
+            font-weight: bold; 
+            margin-top: 10px; 
+            display: block; 
+            color: #333; 
+        }
+        textarea { 
+            width: 100%; 
+            height: 120px; 
+            margin-top: 5px; 
+            border-radius: 8px; 
+            padding: 10px; 
+            border: 2px solid #2a52be; 
+            font-family: Verdana, sans-serif;
+        }
+        input, select { 
+            padding: 10px; 
+            margin-top: 5px; 
+            border-radius: 8px; 
+            border: 2px solid #2a52be; 
+            width: 100%; 
+            font-family: Verdana, sans-serif;
+        }
+        button { 
+            padding: 10px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            margin-top: 10px; 
+            font-family: Verdana, sans-serif;
+        }
         .encrypt-btn { background-color: #4CAF50; color: white; width: 48%; margin-right: 2%; }
         .decrypt-btn { background-color: #2196F3; color: white; width: 48%; }
-        .output { margin-top: 15px; background: #f1f1f1; padding: 15px; border-radius: 8px; word-wrap: break-word; border: 2px solid #2a52be; }
+        .output { 
+            margin-top: 15px; 
+            background: #f1f1f1; 
+            padding: 15px; 
+            border-radius: 8px; 
+            word-wrap: break-word; 
+            border: 2px solid #2a52be; 
+            font-family: Verdana, sans-serif;
+        }
     </style>
     <script>
         function copyToClipboard(id) {
@@ -35,7 +85,7 @@ HTML_PAGE = """
 </head>
 <body>
     <div class="container">
-        <h2>Colorful AES Encryption / Decryption Tool</h2>
+        <h2>AES Encryption / Decryption Tool</h2>
         <form method="POST">
             <label>Plaintext:</label>
             <textarea name="plaintext" id="plaintext">{{ request.form.plaintext or '' }}</textarea>
