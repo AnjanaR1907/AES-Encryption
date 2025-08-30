@@ -9,16 +9,19 @@ HTML_PAGE = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AES Encryption / Decryption Tool</title>
+    <title>Colorful AES Encryption Tool</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        .container { max-width: 900px; margin: auto; display: flex; flex-direction: column; }
-        .columns { display: flex; gap: 20px; margin-bottom: 10px; }
-        textarea { width: 100%; height: 150px; }
-        input, select, button { padding: 8px; margin: 5px 0; width: 100%; }
-        button { cursor: pointer; }
-        .output { background: #f0f0f0; padding: 10px; word-wrap: break-word; }
-        .column { flex: 1; display: flex; flex-direction: column; }
+        body { font-family: Arial, sans-serif; background: #f2f8ff; margin: 30px; }
+        .container { max-width: 700px; margin: auto; background: #ffffff; padding: 30px; border-radius: 15px; 
+                     box-shadow: 0px 0px 15px rgba(0,0,0,0.2);}
+        h2 { text-align: center; color: #2a52be; }
+        label { font-weight: bold; margin-top: 10px; display: block; color: #333; }
+        textarea { width: 100%; height: 120px; margin-top: 5px; border-radius: 8px; padding: 10px; border: 2px solid #2a52be; }
+        input, select { padding: 10px; margin-top: 5px; border-radius: 8px; border: 2px solid #2a52be; width: 100%; }
+        button { padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .encrypt-btn { background-color: #4CAF50; color: white; width: 48%; margin-right: 2%; }
+        .decrypt-btn { background-color: #2196F3; color: white; width: 48%; }
+        .output { margin-top: 15px; background: #f1f1f1; padding: 15px; border-radius: 8px; word-wrap: break-word; border: 2px solid #2a52be; }
     </style>
     <script>
         function copyToClipboard(id) {
@@ -32,11 +35,10 @@ HTML_PAGE = """
 </head>
 <body>
     <div class="container">
-        <h2>AES Encryption / Decryption Tool</h2>
-
+        <h2>Colorful AES Encryption / Decryption Tool</h2>
         <form method="POST">
-            <label>Secret Key:</label>
-            <input type="text" name="key" value="{{ request.form.key or '' }}" required>
+            <label>Plaintext:</label>
+            <textarea name="plaintext" id="plaintext">{{ request.form.plaintext or '' }}</textarea>
 
             <label>Key Size (bytes):</label>
             <select name="key_size">
@@ -45,20 +47,15 @@ HTML_PAGE = """
                 <option value="32" {% if request.form.key_size=='32' %}selected{% endif %}>32</option>
             </select>
 
-            <div class="columns">
-                <div class="column">
-                    <label>Plaintext:</label>
-                    <textarea name="plaintext" id="plaintext">{{ request.form.plaintext or '' }}</textarea>
-                    <button type="submit" name="action" value="encrypt" style="background: lightgreen;">Encrypt →</button>
-                    <button type="button" onclick="copyToClipboard('plaintext')">Copy Plaintext</button>
-                </div>
-                <div class="column">
-                    <label>Ciphertext (Base64):</label>
-                    <textarea name="ciphertext" id="ciphertext">{{ output or '' }}</textarea>
-                    <button type="submit" name="action" value="decrypt" style="background: lightblue;">← Decrypt</button>
-                    <button type="button" onclick="copyToClipboard('ciphertext')">Copy Ciphertext</button>
-                </div>
-            </div>
+            <label>Secret Key:</label>
+            <input type="text" name="key" value="{{ request.form.key or '' }}" required>
+
+            <button type="submit" name="action" value="encrypt" class="encrypt-btn">Encrypt →</button>
+            <button type="submit" name="action" value="decrypt" class="decrypt-btn">← Decrypt</button>
+
+            <label>Ciphertext (Base64):</label>
+            <textarea id="ciphertext">{{ output or '' }}</textarea>
+            <button type="button" onclick="copyToClipboard('ciphertext')" style="background-color:#ff9800; color:white; width: 100%; margin-top:5px;">Copy Ciphertext</button>
         </form>
     </div>
 </body>
