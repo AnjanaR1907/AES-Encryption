@@ -19,10 +19,10 @@ HTML_PAGE = """
         .container { 
             max-width: 700px; 
             margin: auto; 
-            background: #ffffff; 
+            background: #ffe6e6;  /* 🌸 pastel pink background */
             padding: 30px; 
-            border-radius: 15px; 
-            box-shadow: 0px 0px 15px rgba(0,0,0,0.2);
+            border-radius: 20px; 
+            box-shadow: 0px 0px 20px rgba(0,0,0,0.15);
         }
         h2 { 
             text-align: center; 
@@ -39,7 +39,7 @@ HTML_PAGE = """
             width: 100%; 
             height: 120px; 
             margin-top: 5px; 
-            border-radius: 8px; 
+            border-radius: 10px; 
             padding: 10px; 
             border: 2px solid #2a52be; 
             font-family: Verdana, sans-serif;
@@ -47,27 +47,27 @@ HTML_PAGE = """
         input, select { 
             padding: 10px; 
             margin-top: 5px; 
-            border-radius: 8px; 
+            border-radius: 10px; 
             border: 2px solid #2a52be; 
             width: 100%; 
             font-family: Verdana, sans-serif;
         }
         button { 
-            padding: 10px; 
+            padding: 12px; 
             border: none; 
-            border-radius: 8px; 
+            border-radius: 10px; 
             cursor: pointer; 
             font-weight: bold; 
             margin-top: 10px; 
             font-family: Verdana, sans-serif;
         }
-        .encrypt-btn { background-color: #4CAF50; color: white; width: 48%; margin-right: 2%; }
-        .decrypt-btn { background-color: #2196F3; color: white; width: 48%; }
+        .encrypt-btn { background-color: #81c784; color: white; width: 48%; margin-right: 2%; }
+        .decrypt-btn { background-color: #64b5f6; color: white; width: 48%; }
         .output { 
             margin-top: 15px; 
-            background: #f1f1f1; 
+            background: #fce4ec;  /* 🌸 pastel rose for output */
             padding: 15px; 
-            border-radius: 8px; 
+            border-radius: 10px; 
             word-wrap: break-word; 
             border: 2px solid #2a52be; 
             font-family: Verdana, sans-serif;
@@ -105,7 +105,7 @@ HTML_PAGE = """
 
             <label>Ciphertext (Base64):</label>
             <textarea id="ciphertext">{{ output or '' }}</textarea>
-            <button type="button" onclick="copyToClipboard('ciphertext')" style="background-color:#ff9800; color:white; width: 100%; margin-top:5px;">Copy Ciphertext</button>
+            <button type="button" onclick="copyToClipboard('ciphertext')" style="background-color:#ffb74d; color:white; width: 100%; margin-top:5px;">Copy Ciphertext</button>
         </form>
     </div>
 </body>
