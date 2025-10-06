@@ -5,147 +5,197 @@ import base64
 
 app = Flask(__name__)
 
-HTML_PAGE = """
+# ==============================
+# AES Functions
+# ==============================
+def aes_encrypt(plaintext, key):
+    """Encrypts plaintext using AES-CBC, returns base64 encoded IV and ciphertext."""
+    # AES.new generates a random 16-byte IV when IV is not provided.
+    cipher = AES.new(key, AES.MODE_CBC)
+    # 1. Pad and encrypt the plaintext bytes.
+    ct_bytes = cipher.encrypt(pad(plaintext.encode('utf-8'), AES.block_size))
+    # 2. Base64 encode the binary IV and ciphertext for safe transport/display.
+    iv = base64.b64encode(cipher.iv).decode('utf-8')
+    ct = base64.b64encode(ct_bytes).decode('utf-8')
+    return iv, ct
+
+def aes_decrypt(iv_b64, ciphertext_b64, key):
+    """Decrypts base64 IV and ciphertext using AES-CBC, returns plaintext string."""
+    # 1. Decode Base64 strings back to binary bytes.
+    iv = base64.b64decode(iv_b64)
+    ct = base64.b64decode(ciphertext_b64)
+    
+    # 2. Re-initialize cipher with the key and the received IV.
+    # This is the line that throws "Incorrect IV length" if len(iv) != 16
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    
+    # 3. Decrypt and unpad
+    pt_padded = cipher.decrypt(ct)
+    pt = unpad(pt_padded, AES.block_size)
+    
+    # 4. Decode bytes back to UTF-8 string
+    return pt.decode('utf-8')
+
+# ==============================
+# HTML Template (inline)
+# ==============================
+html_page = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AES Encryption / Decryption Tool</title>
+    <title>🔐 AES Encryption & Decryption</title>
     <style>
-        body { 
-            font-family: Verdana, sans-serif; 
-            background-color: #e6f2ff; 
-            margin: 30px; 
+        body {
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #06b6d4, #3b82f6);
+            text-align: center;
+            padding: 40px;
+            color: #fff;
         }
-        .container { 
-            max-width: 700px; 
-            margin: auto; 
-            background: #ffe6e6;  /* 🌸 pastel pink background */
-            padding: 30px; 
-            border-radius: 20px; 
-            box-shadow: 0px 0px 20px rgba(0,0,0,0.15);
+        h1 { font-size: 2.2em; margin-bottom: 20px; }
+        form {
+            background: #ffffff;
+            color: #222;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+            display: inline-block;
+            width: 75%;
+            max-width: 650px;
         }
-        h2 { 
-            text-align: center; 
-            color: #2a52be; 
-            font-family: Verdana, sans-serif; 
+        textarea, input {
+            width: 90%;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            font-size: 1em;
         }
-        label { 
-            font-weight: bold; 
-            margin-top: 10px; 
-            display: block; 
-            color: #333; 
+        button {
+            background: #2563EB;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            margin-top: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: 0.3s;
+            box-shadow: 0 4px #1E40AF;
         }
-        textarea { 
-            width: 100%; 
-            height: 120px; 
-            margin-top: 5px; 
-            border-radius: 10px; 
+        button:hover { background: #1E40AF; box-shadow: 0 2px #1E40AF; transform: translateY(2px); }
+        .result {
+            background: rgba(255, 255, 255, 0.95);
+            color: #111;
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0px 6px 12px rgba(0,0,0,0.2);
+            text-align: left;
+            width: 75%;
+            max-width: 650px;
+            margin-left: auto;
+            margin-right: auto;
+            word-wrap: break-word;
+        }
+        .result b { color: #2563EB; }
+        .result pre { 
+            background: #f4f4f4; 
             padding: 10px; 
-            border: 2px solid #2a52be; 
-            font-family: Verdana, sans-serif;
-        }
-        input, select { 
-            padding: 10px; 
-            margin-top: 5px; 
-            border-radius: 10px; 
-            border: 2px solid #2a52be; 
-            width: 100%; 
-            font-family: Verdana, sans-serif;
-        }
-        button { 
-            padding: 12px; 
-            border: none; 
-            border-radius: 10px; 
-            cursor: pointer; 
-            font-weight: bold; 
-            margin-top: 10px; 
-            font-family: Verdana, sans-serif;
-        }
-        .encrypt-btn { background-color: #81c784; color: white; width: 48%; margin-right: 2%; }
-        .decrypt-btn { background-color: #64b5f6; color: white; width: 48%; }
-        .output { 
-            margin-top: 15px; 
-            background: #fce4ec;  /* 🌸 pastel rose for output */
-            padding: 15px; 
-            border-radius: 10px; 
-            word-wrap: break-word; 
-            border: 2px solid #2a52be; 
-            font-family: Verdana, sans-serif;
+            border-radius: 8px; 
+            overflow-x: auto; 
+            white-space: pre-wrap;
         }
     </style>
-    <script>
-        function copyToClipboard(id) {
-            var copyText = document.getElementById(id);
-            copyText.select();
-            copyText.setSelectionRange(0, 99999);
-            navigator.clipboard.writeText(copyText.value);
-            alert("Copied to clipboard!");
-        }
-    </script>
 </head>
 <body>
-    <div class="container">
-        <h2>AES Encryption / Decryption Tool</h2>
-        <form method="POST">
-            <label>Plaintext:</label>
-            <textarea name="plaintext" id="plaintext">{{ request.form.plaintext or '' }}</textarea>
+    <h1>🔐 AES Encryption & Decryption (CBC Mode)</h1>
+    <form method="POST">
+        <textarea name="plaintext" placeholder="Enter plaintext..." required>{{ plaintext if plaintext else "" }}</textarea><br>
+        <input type="text" name="user_key" placeholder="Enter secret key (16/24/32 bytes)" value="{{ user_key if user_key else '' }}" required><br>
+        <button type="submit">Encrypt & Decrypt</button>
+    </form>
 
-            <label>Key Size (bytes):</label>
-            <select name="key_size">
-                <option value="16" {% if request.form.key_size=='16' %}selected{% endif %}>16</option>
-                <option value="24" {% if request.form.key_size=='24' %}selected{% endif %}>24</option>
-                <option value="32" {% if request.form.key_size=='32' %}selected{% endif %}>32</option>
-            </select>
-
-            <label>Secret Key:</label>
-            <input type="text" name="key" value="{{ request.form.key or '' }}" required>
-
-            <button type="submit" name="action" value="encrypt" class="encrypt-btn">Encrypt →</button>
-            <button type="submit" name="action" value="decrypt" class="decrypt-btn">← Decrypt</button>
-
-            <label>Ciphertext (Base64):</label>
-            <textarea id="ciphertext">{{ output or '' }}</textarea>
-            <button type="button" onclick="copyToClipboard('ciphertext')" style="background-color:#ffb74d; color:white; width: 100%; margin-top:5px;">Copy Ciphertext</button>
-        </form>
+    {% if error %}
+    <div class="result">
+        <p style="color:red;"><b>Error:</b> {{ error }}</p>
     </div>
+    {% endif %}
+
+    {% if secret_key %}
+    <div class="result">
+        <p><b>Secret Key (Hex):</b><br><pre>{{ secret_key }}</pre></p>
+        <p><b>Key Length (bits):</b> {{ key_length }}</p>
+        <p><b>Ciphertext (Base64 + IV):</b><br><pre>{{ ciphertext }}</pre></p>
+        <p><b>Decrypted Plaintext:</b><br><pre>{{ decrypted_text }}</pre></p>
+    </div>
+    {% endif %}
 </body>
 </html>
 """
 
-def encrypt_aes(plaintext, key):
-    cipher = AES.new(key, AES.MODE_CBC)
-    ct_bytes = cipher.encrypt(pad(plaintext, AES.block_size))
-    return base64.b64encode(cipher.iv + ct_bytes).decode('utf-8')
-
-def decrypt_aes(ciphertext, key):
-    ct_bytes = base64.b64decode(ciphertext)
-    iv = ct_bytes[:AES.block_size]
-    cipher = AES.new(key, AES.MODE_CBC, iv)
-    pt = unpad(cipher.decrypt(ct_bytes[AES.block_size:]), AES.block_size)
-    return pt.decode('utf-8')
-
+# ==============================
+# Routes
+# ==============================
 @app.route("/", methods=["GET", "POST"])
 def index():
-    output = ""
     if request.method == "POST":
-        key = request.form.get("key", "").encode()
-        key_size = int(request.form.get("key_size", 16))
-        action = request.form.get("action")
         plaintext = request.form.get("plaintext", "")
-        ciphertext = request.form.get("ciphertext", "")
+        key_input = request.form.get("user_key", "")
+        
+        # --- Key Encoding and Validation ---
+        user_key = key_input.encode('utf-8')
+        
+        if len(user_key) not in (16, 24, 32):
+            return render_template_string(html_page,
+                                         plaintext=plaintext,
+                                         user_key=key_input,
+                                         error="❌ Invalid key length! Must be 16, 24, or 32 bytes.")
 
-        if len(key) != key_size:
-            output = f"Error: Key must be {key_size} bytes long"
-        else:
-            try:
-                if action == "encrypt":
-                    output = encrypt_aes(plaintext.encode(), key)
-                elif action == "decrypt":
-                    output = decrypt_aes(ciphertext, key)
-            except Exception as e:
-                output = f"Error: {str(e)}"
+        # --- Encryption & Decryption ---
+        error_message = None
+        ciphertext = ""
+        decrypted_text = ""
+        
+        try:
+            # ENCRYPTION: Returns Base64-encoded IV and Ciphertext
+            iv, ciphertext_data = aes_encrypt(plaintext, user_key)
+            
+            # Combine IV and Ciphertext for display/storage (IV is prepended to the ciphertext data for simplicity)
+            # NOTE: In real-world applications, you'd typically send IV and CT separately.
+            ciphertext = f"IV={iv}\nCT={ciphertext_data}"
 
-    return render_template_string(HTML_PAGE, output=output)
+            # DECRYPTION: Uses the exact same key and IV to verify integrity
+            # Pass the separate components back to the decrypt function
+            decrypted_text = aes_decrypt(iv, ciphertext_data, user_key)
+            
+        except ValueError as e:
+            # Catches IV length errors, Padding errors, and other cryptographic value issues
+            error_message = f"Cryptographic Error: {e}"
+        except Exception as e:
+            # Catches other unexpected errors
+            error_message = f"An unexpected error occurred: {e}"
 
+        if error_message:
+             return render_template_string(html_page,
+                                         plaintext=plaintext,
+                                         user_key=key_input,
+                                         error=error_message)
+
+        # --- Success Output ---
+        return render_template_string(html_page,
+                                    plaintext=plaintext,
+                                    user_key=key_input,
+                                    secret_key=user_key.hex(),
+                                    key_length=len(user_key)*8,
+                                    ciphertext=ciphertext,
+                                    decrypted_text=decrypted_text)
+                                    
+    # --- Initial GET request ---
+    return render_template_string(html_page)
+
+# ==============================
+# Run
+# ==============================
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=True)
