@@ -26,7 +26,7 @@ def aes_decrypt(iv_b64, ciphertext_b64, key):
     ct = base64.b64decode(ciphertext_b64)
     
     # 2. Re-initialize cipher with the key and the received IV.
-    # This is the line that throws "Incorrect IV length" if len(iv) != 16
+    # This is where errors like "Incorrect IV length" occur if data is corrupted.
     cipher = AES.new(key, AES.MODE_CBC, iv)
     
     # 3. Decrypt and unpad
@@ -44,92 +44,71 @@ html_page = """
 <html>
 <head>
     <title>🔐 AES Encryption & Decryption</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+            font-family: 'Inter', sans-serif;
             background: linear-gradient(135deg, #06b6d4, #3b82f6);
-            text-align: center;
-            padding: 40px;
-            color: #fff;
-        }
-        h1 { font-size: 2.2em; margin-bottom: 20px; }
-        form {
-            background: #ffffff;
-            color: #222;
-            padding: 25px;
-            border-radius: 16px;
-            box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
-            display: inline-block;
-            width: 75%;
-            max-width: 650px;
-        }
-        textarea, input {
-            width: 90%;
-            padding: 12px;
-            margin: 8px 0;
-            border-radius: 10px;
-            border: 1px solid #ccc;
-            font-size: 1em;
-        }
-        button {
-            background: #2563EB;
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            margin-top: 10px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: 0.3s;
-            box-shadow: 0 4px #1E40AF;
-        }
-        button:hover { background: #1E40AF; box-shadow: 0 2px #1E40AF; transform: translateY(2px); }
-        .result {
-            background: rgba(255, 255, 255, 0.95);
-            color: #111;
-            margin-top: 25px;
-            padding: 20px;
-            border-radius: 16px;
-            box-shadow: 0px 6px 12px rgba(0,0,0,0.2);
-            text-align: left;
-            width: 75%;
-            max-width: 650px;
-            margin-left: auto;
-            margin-right: auto;
-            word-wrap: break-word;
-        }
-        .result b { color: #2563EB; }
-        .result pre { 
-            background: #f4f4f4; 
-            padding: 10px; 
-            border-radius: 8px; 
-            overflow-x: auto; 
-            white-space: pre-wrap;
+            min-height: 100vh;
         }
     </style>
 </head>
-<body>
-    <h1>🔐 AES Encryption & Decryption (CBC Mode)</h1>
-    <form method="POST">
-        <textarea name="plaintext" placeholder="Enter plaintext..." required>{{ plaintext if plaintext else "" }}</textarea><br>
-        <input type="text" name="user_key" placeholder="Enter secret key (16/24/32 bytes)" value="{{ user_key if user_key else '' }}" required><br>
-        <button type="submit">Encrypt & Decrypt</button>
-    </form>
+<body class="p-8 text-white">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-center">🔐 AES Encryption & Decryption (CBC Mode)</h1>
 
-    {% if error %}
-    <div class="result">
-        <p style="color:red;"><b>Error:</b> {{ error }}</p>
-    </div>
-    {% endif %}
+        {% if error %}
+        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl mb-6 shadow-md" role="alert">
+            <p class="font-bold">Operation Failed</p>
+            <p>Cryptographic Error: {{ error }}</p>
+        </div>
+        {% endif %}
 
-    {% if secret_key %}
-    <div class="result">
-        <p><b>Secret Key (Hex):</b><br><pre>{{ secret_key }}</pre></p>
-        <p><b>Key Length (bits):</b> {{ key_length }}</p>
-        <p><b>Ciphertext (Base64 + IV):</b><br><pre>{{ ciphertext }}</pre></p>
-        <p><b>Decrypted Plaintext:</b><br><pre>{{ decrypted_text }}</pre></p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- ENCRYPTION CARD -->
+            <div class="bg-white p-6 rounded-xl shadow-2xl text-gray-800">
+                <h2 class="text-xl font-semibold mb-4 text-blue-600">Encrypt Data</h2>
+                <form method="POST" class="space-y-4">
+                    <input type="hidden" name="action" value="encrypt">
+                    <textarea name="plaintext" placeholder="Enter plaintext to encrypt..." required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">{{ encrypt_data.plaintext if encrypt_data.plaintext else "" }}</textarea>
+                    <input type="text" name="key_input" placeholder="Enter secret key (16/24/32 bytes)" value="{{ encrypt_data.key_input if encrypt_data.key_input else '' }}" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg transition duration-150 transform hover:scale-[1.01] shadow-lg">Encrypt</button>
+                </form>
+                
+                {% if encrypt_data.ciphertext %}
+                <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <p class="font-bold text-blue-600 mb-2">Encryption Results:</p>
+                    <p class="text-sm">Key (Hex): <span class="font-mono text-gray-700 break-all">{{ encrypt_data.secret_key }}</span></p>
+                    <p class="text-sm">Key Length: <span class="font-bold text-gray-700">{{ encrypt_data.key_length }} bits</span></p>
+                    <label class="block mt-3 text-sm font-medium text-gray-700">Initialization Vector (IV):</label>
+                    <textarea readonly rows="2" id="iv_output" class="w-full p-2 text-sm font-mono bg-white border border-gray-300 rounded-lg mt-1 break-all">{{ encrypt_data.iv }}</textarea>
+                    <label class="block mt-3 text-sm font-medium text-gray-700">Ciphertext:</label>
+                    <textarea readonly rows="4" id="ct_output" class="w-full p-2 text-sm font-mono bg-white border border-gray-300 rounded-lg mt-1 break-all">{{ encrypt_data.ciphertext }}</textarea>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- DECRYPTION CARD -->
+            <div class="bg-white p-6 rounded-xl shadow-2xl text-gray-800">
+                <h2 class="text-xl font-semibold mb-4 text-pink-600">Decrypt Data</h2>
+                <form method="POST" class="space-y-4">
+                    <input type="hidden" name="action" value="decrypt">
+                    <textarea name="iv_input" placeholder="Paste Base64 IV (16 bytes decoded)" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500">{{ decrypt_data.iv_input if decrypt_data.iv_input else "" }}</textarea>
+                    <textarea name="ciphertext_input" placeholder="Paste Base64 Ciphertext" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500">{{ decrypt_data.ciphertext_input if decrypt_data.ciphertext_input else "" }}</textarea>
+                    <input type="text" name="key_input" placeholder="Enter secret key (MUST be the EXACT same key)" value="{{ decrypt_data.key_input if decrypt_data.key_input else '' }}" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500">
+                    <button type="submit" class="w-full bg-pink-600 hover:bg-pink-700 text-white font-bold py-2 rounded-lg transition duration-150 transform hover:scale-[1.01] shadow-lg">Decrypt</button>
+                </form>
+
+                {% if decrypt_data.plaintext %}
+                <div class="mt-6 p-4 bg-pink-50 rounded-lg border border-pink-200">
+                    <p class="font-bold text-pink-600 mb-2">Decryption Result:</p>
+                    <label class="block text-sm font-medium text-gray-700">Decrypted Plaintext:</label>
+                    <textarea readonly rows="4" class="w-full p-2 text-sm font-mono bg-white border border-gray-300 rounded-lg mt-1 break-all">{{ decrypt_data.plaintext }}</textarea>
+                </div>
+                {% endif %}
+            </div>
+        </div>
     </div>
-    {% endif %}
 </body>
 </html>
 """
@@ -139,60 +118,67 @@ html_page = """
 # ==============================
 @app.route("/", methods=["GET", "POST"])
 def index():
+    # Initial state or state after submission
+    state = {'error': None, 'encrypt_data': {}, 'decrypt_data': {}}
+    
     if request.method == "POST":
-        plaintext = request.form.get("plaintext", "")
-        key_input = request.form.get("user_key", "")
-        
-        # --- Key Encoding and Validation ---
+        action = request.form.get("action")
+        key_input = request.form.get("key_input", "")
         user_key = key_input.encode('utf-8')
         
+        # Preserve user key input
+        if action == 'encrypt':
+            state['encrypt_data']['key_input'] = key_input
+            state['encrypt_data']['plaintext'] = request.form.get("plaintext", "")
+        elif action == 'decrypt':
+            state['decrypt_data']['key_input'] = key_input
+            state['decrypt_data']['iv_input'] = request.form.get("iv_input", "")
+            state['decrypt_data']['ciphertext_input'] = request.form.get("ciphertext_input", "")
+
+
+        # --- Key Validation ---
         if len(user_key) not in (16, 24, 32):
-            return render_template_string(html_page,
-                                         plaintext=plaintext,
-                                         user_key=key_input,
-                                         error="❌ Invalid key length! Must be 16, 24, or 32 bytes.")
+            state['error'] = "❌ Invalid key length! Must be 16, 24, or 32 bytes (e.g., exactly 16 characters)."
+            return render_template_string(html_page, **state)
 
-        # --- Encryption & Decryption ---
-        error_message = None
-        ciphertext = ""
-        decrypted_text = ""
-        
-        try:
-            # ENCRYPTION: Returns Base64-encoded IV and Ciphertext
-            iv, ciphertext_data = aes_encrypt(plaintext, user_key)
+        # --- Handle Encrypt Action ---
+        if action == "encrypt":
+            plaintext = request.form.get("plaintext", "")
+            try:
+                iv, ciphertext = aes_encrypt(plaintext, user_key)
+                
+                state['encrypt_data']['plaintext'] = plaintext
+                state['encrypt_data']['secret_key'] = user_key.hex()
+                state['encrypt_data']['key_length'] = len(user_key) * 8
+                state['encrypt_data']['iv'] = iv
+                state['encrypt_data']['ciphertext'] = ciphertext
+                
+            except ValueError as e:
+                state['error'] = f"Encryption Error: {e}"
+            except Exception as e:
+                state['error'] = f"An unexpected error occurred during encryption: {e}"
+
+        # --- Handle Decrypt Action ---
+        elif action == "decrypt":
+            iv_input = request.form.get("iv_input", "")
+            ciphertext_input = request.form.get("ciphertext_input", "")
             
-            # Combine IV and Ciphertext for display/storage (IV is prepended to the ciphertext data for simplicity)
-            # NOTE: In real-world applications, you'd typically send IV and CT separately.
-            ciphertext = f"IV={iv}\nCT={ciphertext_data}"
+            try:
+                # IMPORTANT: If the user provides a different key here, decryption will fail!
+                decrypted_text = aes_decrypt(iv_input, ciphertext_input, user_key)
+                
+                state['decrypt_data']['plaintext'] = decrypted_text
+                
+            except ValueError as e:
+                # This catches common errors like incorrect IV length, invalid padding, or invalid Base64.
+                state['error'] = f"Decryption Failed (Key/IV/Ciphertext Error): {e}"
+            except Exception as e:
+                state['error'] = f"An unexpected error occurred during decryption: {e}"
 
-            # DECRYPTION: Uses the exact same key and IV to verify integrity
-            # Pass the separate components back to the decrypt function
-            decrypted_text = aes_decrypt(iv, ciphertext_data, user_key)
-            
-        except ValueError as e:
-            # Catches IV length errors, Padding errors, and other cryptographic value issues
-            error_message = f"Cryptographic Error: {e}"
-        except Exception as e:
-            # Catches other unexpected errors
-            error_message = f"An unexpected error occurred: {e}"
-
-        if error_message:
-             return render_template_string(html_page,
-                                         plaintext=plaintext,
-                                         user_key=key_input,
-                                         error=error_message)
-
-        # --- Success Output ---
-        return render_template_string(html_page,
-                                    plaintext=plaintext,
-                                    user_key=key_input,
-                                    secret_key=user_key.hex(),
-                                    key_length=len(user_key)*8,
-                                    ciphertext=ciphertext,
-                                    decrypted_text=decrypted_text)
+        return render_template_string(html_page, **state)
                                     
     # --- Initial GET request ---
-    return render_template_string(html_page)
+    return render_template_string(html_page, **state)
 
 # ==============================
 # Run
